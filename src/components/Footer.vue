@@ -32,7 +32,7 @@
       </div>
 
       <div class="footer-bottom">
-        <p>&copy; 2024 CreativeHub. All rights reserved.</p>
+        <p>&copy; 2026 CreativeHub. All rights reserved.</p>
         <div class="social-icons">
           <a href="#"
             ><el-icon><Share /></el-icon
