@@ -96,23 +96,98 @@
 
         <el-form-item label="作品图片" prop="images">
           <div class="upload-area">
-            <el-upload
-              v-model:file-list="fileList"
-              action="#"
-              list-type="picture-card"
-              :auto-upload="false"
-              :limit="9"
-              :on-change="handleFileChange"
-              :on-remove="handleRemove"
-              :on-exceed="handleExceed"
-              :before-upload="beforeUpload"
-              :on-preview="handlePreview"
+            <!-- 图片网格 -->
+            <div
+              class="image-grid"
+              @dragstart="handleDragStart"
+              @dragend="handleDragEnd"
+              @dragover="handleDragOver"
+              @drop="handleDrop"
             >
-              <el-icon><Plus /></el-icon>
-            </el-upload>
-            <div class="form-tip">
-              点击图片可放大预览 | 支持 JPG、PNG、GIF 格式，单张不超过
-              5MB，最多上传 9 张
+              <!-- 已上传的图片 -->
+              <div
+                v-for="(img, index) in imagePreviews"
+                :key="index"
+                class="image-item"
+                :data-index="index"
+                draggable="true"
+                :class="{ 'drag-over': dragOverIndex === index }"
+              >
+                <div class="image-item-inner">
+                  <img :src="img" :alt="`图片 ${index + 1}`" />
+                  <div class="image-overlay">
+                    <div class="image-actions">
+                      <el-button
+                        type="primary"
+                        circle
+                        size="small"
+                        @click="openPreview(index)"
+                        title="预览"
+                      >
+                        <el-icon><ZoomIn /></el-icon>
+                      </el-button>
+                      <el-button
+                        type="danger"
+                        circle
+                        size="small"
+                        @click="removeImage(index)"
+                        title="删除"
+                      >
+                        <el-icon><Delete /></el-icon>
+                      </el-button>
+                    </div>
+                  </div>
+                  <div class="image-index">{{ index + 1 }}</div>
+                  <div class="drag-handle" title="拖动排序">
+                    <el-icon><Rank /></el-icon>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 上传按钮 - 与图片保持相同尺寸 -->
+              <div
+                class="upload-btn-wrapper"
+                :class="{ 'upload-full': imagePreviews.length >= 9 }"
+              >
+                <el-upload
+                  ref="uploadRef"
+                  action="#"
+                  list-type="picture-card"
+                  :auto-upload="false"
+                  :limit="9"
+                  :on-change="handleFileChange"
+                  :on-exceed="handleExceed"
+                  :before-upload="beforeUpload"
+                  :show-file-list="false"
+                  :disabled="imagePreviews.length >= 9"
+                >
+                  <div class="upload-content">
+                    <el-icon><Plus /></el-icon>
+                    <span>上传图片</span>
+                    <span class="upload-hint">点击或拖拽</span>
+                  </div>
+                </el-upload>
+              </div>
+            </div>
+
+            <!-- 底部注释 -->
+            <div class="upload-footer">
+              <div class="upload-info">
+                <span class="form-tip">
+                  <el-icon><InfoFilled /></el-icon>
+                  支持 JPG、PNG、GIF 格式，单张不超过 5MB
+                </span>
+                <span
+                  class="form-tip image-count"
+                  v-if="imagePreviews.length > 0"
+                >
+                  已上传 {{ imagePreviews.length }} / 9 张
+                  <span class="sort-hint">｜拖动图片可调整顺序</span>
+                </span>
+                <span class="form-tip image-count" v-else>
+                  最多上传 9 张图片
+                </span>
+              </div>
             </div>
           </div>
         </el-form-item>
@@ -158,7 +233,6 @@
           />
         </div>
 
-        <!-- 底部操作栏 -->
         <div class="preview-toolbar">
           <el-button-group>
             <el-button @click="zoomIn" title="放大">
@@ -196,15 +270,21 @@ const workStore = useWorkStore();
 const userStore = useUserStore();
 
 const formRef = ref(null);
+const uploadRef = ref(null);
 const fileList = ref([]);
 const imageBase64List = ref([]);
 const imagePreviews = ref([]);
 const submitting = ref(false);
 const previewImageRef = ref(null);
 
+// 拖拽相关
+const dragStartIndex = ref(null);
+const dragOverIndex = ref(null);
+
 // 预览相关
 const previewVisible = ref(false);
 const previewImage = ref("");
+const currentPreviewIndex = ref(0);
 const zoomLevel = ref(1);
 const rotationAngle = ref(0);
 
@@ -268,38 +348,73 @@ const rules = {
   images: [{ validator: validateImages, trigger: "change" }],
 };
 
+// ===== 拖拽排序功能 =====
+const handleDragStart = (e) => {
+  const index = e.target.closest(".image-item")?.dataset.index;
+  if (index !== undefined) {
+    dragStartIndex.value = parseInt(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.target.style.opacity = "0.5";
+  }
+};
+
+const handleDragEnd = (e) => {
+  e.target.style.opacity = "1";
+  dragStartIndex.value = null;
+  dragOverIndex.value = null;
+};
+
+const handleDragOver = (e) => {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  const target = e.target.closest(".image-item");
+  if (target) {
+    const index = parseInt(target.dataset.index);
+    if (index !== dragStartIndex.value) {
+      dragOverIndex.value = index;
+    }
+  }
+};
+
+const handleDrop = (e) => {
+  e.preventDefault();
+  const target = e.target.closest(".image-item");
+  if (!target) return;
+
+  const dropIndex = parseInt(target.dataset.index);
+  if (dropIndex === dragStartIndex.value || dragStartIndex.value === null) {
+    dragOverIndex.value = null;
+    return;
+  }
+
+  const items = [...imagePreviews.value];
+  const [removed] = items.splice(dragStartIndex.value, 1);
+  items.splice(dropIndex, 0, removed);
+
+  imagePreviews.value = items;
+  imageBase64List.value = [...items];
+  updateFormImages();
+
+  dragStartIndex.value = null;
+  dragOverIndex.value = null;
+
+  ElMessage.success("图片顺序已更新");
+};
+
+// ===== 图片管理功能 =====
 const handleFileChange = (file) => {
   const reader = new FileReader();
   reader.onload = (e) => {
     const base64 = e.target.result;
     imageBase64List.value.push(base64);
     imagePreviews.value.push(base64);
-    form.images = [...imageBase64List.value];
+    updateFormImages();
     if (formRef.value) {
       formRef.value.validateField("images");
     }
+    fileList.value = [];
   };
   reader.readAsDataURL(file.raw);
-};
-
-// 处理图片移除
-const handleRemove = (file) => {
-  const removedIndex = fileList.value.findIndex((f) => f.uid === file.uid);
-
-  if (removedIndex !== -1) {
-    imageBase64List.value.splice(removedIndex, 1);
-    imagePreviews.value.splice(removedIndex, 1);
-    form.images = [...imageBase64List.value];
-
-    // 如果预览弹窗打开且没有图片了，关闭预览
-    if (imagePreviews.value.length === 0 && previewVisible.value) {
-      closePreview();
-    }
-
-    if (formRef.value) {
-      formRef.value.validateField("images");
-    }
-  }
 };
 
 const handleExceed = () => {
@@ -321,56 +436,67 @@ const beforeUpload = (file) => {
   return true;
 };
 
-// 预览图片 - 点击上传组件的图片触发
-const handlePreview = (file) => {
-  // 找到点击的图片在列表中的索引
-  const index = fileList.value.findIndex((f) => f.uid === file.uid);
-  if (index !== -1 && imagePreviews.value[index]) {
-    openPreview(imagePreviews.value[index]);
-  }
+const updateFormImages = () => {
+  form.images = [...imageBase64List.value];
 };
 
-// 打开预览
-const openPreview = (image) => {
-  previewImage.value = image;
+const removeImage = (index) => {
+  ElMessageBox.confirm("确定要删除这张图片吗？", "提示", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+  })
+    .then(() => {
+      imageBase64List.value.splice(index, 1);
+      imagePreviews.value.splice(index, 1);
+      updateFormImages();
+      if (formRef.value) {
+        formRef.value.validateField("images");
+      }
+      if (imagePreviews.value.length === 0 && previewVisible.value) {
+        closePreview();
+      }
+    })
+    .catch(() => {});
+};
+
+// ===== 预览功能 =====
+const openPreview = (index) => {
+  if (index < 0 || index >= imagePreviews.value.length) return;
+  currentPreviewIndex.value = index;
+  previewImage.value = imagePreviews.value[index];
   previewVisible.value = true;
   zoomLevel.value = 1;
   rotationAngle.value = 0;
 };
 
-// 关闭预览
 const closePreview = () => {
   previewVisible.value = false;
   zoomLevel.value = 1;
   rotationAngle.value = 0;
 };
 
-// 放大
 const zoomIn = () => {
   if (zoomLevel.value < 3) {
     zoomLevel.value += 0.25;
   }
 };
 
-// 缩小
 const zoomOut = () => {
   if (zoomLevel.value > 0.25) {
     zoomLevel.value -= 0.25;
   }
 };
 
-// 重置缩放
 const resetZoom = () => {
   zoomLevel.value = 1;
   rotationAngle.value = 0;
 };
 
-// 旋转
 const rotateImage = () => {
   rotationAngle.value = (rotationAngle.value + 90) % 360;
 };
 
-// 切换缩放（点击图片）
 const toggleZoom = () => {
   if (zoomLevel.value > 1) {
     zoomLevel.value = 1;
@@ -379,7 +505,6 @@ const toggleZoom = () => {
   }
 };
 
-// 滚轮缩放
 const handleWheel = (e) => {
   e.preventDefault();
   if (e.deltaY < 0) {
@@ -389,12 +514,11 @@ const handleWheel = (e) => {
   }
 };
 
-// 下载图片
 const downloadImage = () => {
   if (previewImage.value) {
     const link = document.createElement("a");
     link.href = previewImage.value;
-    link.download = "作品图片.jpg";
+    link.download = `作品图片_${currentPreviewIndex.value + 1}.jpg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -402,7 +526,7 @@ const downloadImage = () => {
   }
 };
 
-// 构建作品数据
+// ===== 提交功能 =====
 const buildWorkData = (status) => {
   const user = userStore.currentUser;
   return {
@@ -421,7 +545,6 @@ const buildWorkData = (status) => {
   };
 };
 
-// 保存草稿
 const saveDraft = async () => {
   if (!form.title.trim()) {
     ElMessage.warning("请填写作品标题");
@@ -434,48 +557,31 @@ const saveDraft = async () => {
 
   const workData = buildWorkData("draft");
   const newWork = workStore.createWork(workData);
-
-  // 立即保存到 localStorage（确保数据已写入）
   workStore.saveWorks();
 
-  console.log("✅ 草稿已保存:", newWork);
   ElMessage.success("已保存到草稿箱");
 
-  // 触发数据刷新事件
   if (typeof window !== "undefined") {
     const eventDetail = {
       source: "workUpload",
       workId: newWork.id,
       work: newWork,
     };
-
-    // 立即触发
     window.dispatchEvent(
       new CustomEvent("user-data-refresh", { detail: eventDetail }),
     );
-
-    // 延迟触发
     setTimeout(() => {
       window.dispatchEvent(
         new CustomEvent("user-data-refresh", { detail: eventDetail }),
       );
     }, 100);
-
-    // 再次延迟触发
-    setTimeout(() => {
-      window.dispatchEvent(
-        new CustomEvent("user-data-refresh", { detail: eventDetail }),
-      );
-    }, 300);
   }
 
-  // 延迟跳转
   setTimeout(() => {
     router.push("/drafts");
   }, 150);
 };
 
-// 发布
 const publish = async () => {
   if (!formRef.value) return;
   await formRef.value.validate((valid) => {
@@ -490,7 +596,6 @@ const publish = async () => {
   });
 };
 
-// 重置表单
 const resetForm = () => {
   ElMessageBox.confirm("确定要取消上传吗？已填写的内容将丢失。", "提示", {
     confirmButtonText: "确定",
@@ -503,10 +608,8 @@ const resetForm = () => {
     .catch(() => {});
 };
 
-// 键盘事件
 const handleKeydown = (e) => {
   if (!previewVisible.value) return;
-
   switch (e.key) {
     case "Escape":
       closePreview();
@@ -556,7 +659,6 @@ onUnmounted(() => {
 .form-tip {
   font-size: 12px;
   color: #7f8c8d;
-  margin-top: 4px;
 }
 
 .form-actions {
@@ -566,68 +668,209 @@ onUnmounted(() => {
   border-top: 1px solid #ecf0f1;
 }
 
-/* 上传区域 */
+/* ===== 图片上传区域 ===== */
 .upload-area {
+  margin-bottom: 4px;
+}
+
+.image-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 8px;
 }
 
-.upload-area :deep(.el-upload--picture-card) {
-  width: 120px;
-  height: 120px;
+.image-item {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  cursor: grab;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.image-item:active {
+  cursor: grabbing;
+}
+
+.image-item.drag-over {
+  transform: scale(1.05);
+}
+
+.image-item.drag-over .image-item-inner {
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+}
+
+.image-item-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
   border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #ecf0f1;
+  background: #f8f9fa;
   transition: all 0.3s ease;
 }
 
-.upload-area :deep(.el-upload--picture-card:hover) {
+.image-item-inner:hover {
   border-color: #3498db;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
-.upload-area :deep(.el-upload-list__item) {
-  width: 120px;
-  height: 120px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
+.image-item-inner:hover .image-overlay {
+  opacity: 1;
 }
 
-.upload-area :deep(.el-upload-list__item:hover) {
-  border-color: #3498db;
+.image-item-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
 }
 
-.upload-area :deep(.el-upload-list__item .el-icon--close) {
+.image-index {
+  position: absolute;
+  top: 6px;
+  left: 6px;
   background: rgba(0, 0, 0, 0.6);
   color: white;
-  border-radius: 50%;
-  padding: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 8px;
+  border-radius: 10px;
+  line-height: 20px;
+  min-width: 20px;
+  text-align: center;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
 }
 
-.upload-area :deep(.el-upload-list__item .el-icon--close:hover) {
-  background: #e74c3c;
-}
-
-.upload-area :deep(.el-upload-list__item .el-upload-list__item-actions) {
+.drag-handle {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
   background: rgba(0, 0, 0, 0.5);
-}
-
-.upload-area :deep(.el-upload-list__item .el-upload-list__item-actions span) {
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: white;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
 }
 
-.upload-area
-  :deep(
-    .el-upload-list__item
-      .el-upload-list__item-actions
-      .el-upload-list__item-actions-preview
-  ) {
-  color: white;
+.drag-handle .el-icon {
+  font-size: 14px;
 }
 
-.upload-area
-  :deep(
-    .el-upload-list__item
-      .el-upload-list__item-actions
-      .el-upload-list__item-actions-preview:hover
-  ) {
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.image-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.image-actions .el-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+}
+
+/* 上传按钮 - 与图片保持相同尺寸 */
+.upload-btn-wrapper {
+  width: 130px;
+  height: 130px;
+  flex-shrink: 0;
+}
+
+.upload-btn-wrapper :deep(.el-upload) {
+  width: 100%;
+  height: 100%;
+}
+
+.upload-btn-wrapper :deep(.el-upload--picture-card) {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  border: 2px dashed #d9d9d9;
+  transition: all 0.3s ease;
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.upload-btn-wrapper :deep(.el-upload--picture-card:hover) {
+  border-color: #3498db;
+  background: #f0f7ff;
+}
+
+.upload-btn-wrapper.upload-full {
+  display: none;
+}
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #8c8c8c;
+}
+
+.upload-content .el-icon {
+  font-size: 28px;
+}
+
+.upload-content span {
+  font-size: 13px;
+}
+
+.upload-content .upload-hint {
+  font-size: 11px;
+  color: #b0b0b0;
+}
+
+/* 底部信息 */
+.upload-footer {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.upload-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.image-count {
   color: #3498db;
+  font-weight: 500;
+}
+
+.sort-hint {
+  color: #95a5a6;
+  font-weight: 400;
 }
 
 /* 预览弹窗 */
@@ -646,11 +889,6 @@ onUnmounted(() => {
   padding: 16px 24px;
   border-bottom: 1px solid #ecf0f1;
   margin: 0;
-}
-
-.preview-dialog :deep(.el-dialog__title) {
-  font-size: 18px;
-  font-weight: 600;
 }
 
 .preview-container {
@@ -678,10 +916,9 @@ onUnmounted(() => {
   max-width: 90%;
   max-height: 85%;
   object-fit: contain;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s ease;
   user-select: none;
   -webkit-user-drag: none;
-  will-change: transform;
 }
 
 .preview-toolbar {
@@ -705,7 +942,6 @@ onUnmounted(() => {
   border: none;
   padding: 8px 12px;
   border-radius: 8px;
-  transition: all 0.3s ease;
 }
 
 .preview-toolbar .el-button:hover {
@@ -713,30 +949,14 @@ onUnmounted(() => {
   color: white;
 }
 
-.preview-toolbar .el-button:active {
-  transform: scale(0.95);
-}
-
-.preview-toolbar .el-button .el-icon {
-  font-size: 18px;
-}
-
 .zoom-level {
   color: rgba(255, 255, 255, 0.7);
   font-size: 13px;
   min-width: 44px;
   text-align: center;
-  font-weight: 500;
-  padding: 0 8px;
 }
 
 /* 响应式 */
-@media (max-width: 1024px) {
-  .preview-dialog :deep(.el-dialog) {
-    width: 95% !important;
-  }
-}
-
 @media (max-width: 768px) {
   .upload-form {
     padding: 20px;
@@ -750,12 +970,12 @@ onUnmounted(() => {
     width: 100%;
   }
 
-  .upload-area :deep(.el-upload--picture-card) {
+  .image-item {
     width: 100px;
     height: 100px;
   }
 
-  .upload-area :deep(.el-upload-list__item) {
+  .upload-btn-wrapper {
     width: 100px;
     height: 100px;
   }
@@ -768,15 +988,6 @@ onUnmounted(() => {
     height: 60vh;
   }
 
-  .preview-image-wrapper {
-    padding: 10px;
-  }
-
-  .preview-image-wrapper img {
-    max-width: 95%;
-    max-height: 80%;
-  }
-
   .preview-toolbar {
     bottom: 16px;
     padding: 6px 12px;
@@ -786,36 +997,33 @@ onUnmounted(() => {
     max-width: 90%;
   }
 
-  .preview-toolbar .el-button {
-    padding: 6px 8px;
-  }
-
-  .preview-toolbar .el-button .el-icon {
-    font-size: 16px;
-  }
-
-  .zoom-level {
-    font-size: 12px;
-    min-width: 36px;
+  .upload-info {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
 @media (max-width: 480px) {
-  .preview-dialog :deep(.el-dialog__body) {
-    height: 50vh;
+  .image-item {
+    width: 80px;
+    height: 80px;
   }
 
-  .preview-toolbar {
-    gap: 2px;
-    padding: 4px 8px;
+  .upload-btn-wrapper {
+    width: 80px;
+    height: 80px;
   }
 
-  .preview-toolbar .el-button {
-    padding: 4px 6px;
+  .upload-content .el-icon {
+    font-size: 22px;
   }
 
-  .preview-toolbar .el-button .el-icon {
-    font-size: 14px;
+  .upload-content span {
+    font-size: 11px;
+  }
+
+  .upload-content .upload-hint {
+    display: none;
   }
 }
 </style>
