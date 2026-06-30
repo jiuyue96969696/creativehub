@@ -192,6 +192,6 @@ Creativehub网站的核心功能演示视频已经录制完毕并上传小雅
 
 🧪 测试账号
 用户名 邮箱 密码 角色
-创意设计师 designer@creativehub.com 123456 管理员
+九月9 designer@creativehub.com 123456 管理员
 视觉艺术家 artist@creativehub.com 123456 创作者
 插画师小美 xiaomei@creativehub.com 123456 创作者
