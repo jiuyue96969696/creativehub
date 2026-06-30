@@ -23,10 +23,27 @@
             <router-link to="/category/4">摄影</router-link>
           </div>
           <div class="link-group">
-            <h4>支持</h4>
-            <a href="#">帮助中心</a>
-            <a href="#">使用指南</a>
-            <a href="#">反馈建议</a>
+            <h4>我的</h4>
+            <!-- 个人主页 - 需要登录才能访问 -->
+            <router-link
+              v-if="userStore.isLoggedIn"
+              :to="`/user/${userStore.currentUserId}`"
+            >
+              个人主页
+            </router-link>
+            <span v-else class="disabled-link" title="请先登录">个人主页</span>
+
+            <!-- 关注管理 - 需要登录才能访问 -->
+            <router-link v-if="userStore.isLoggedIn" to="/follows">
+              关注管理
+            </router-link>
+            <span v-else class="disabled-link" title="请先登录">关注管理</span>
+
+            <!-- 我的收藏 - 需要登录才能访问 -->
+            <router-link v-if="userStore.isLoggedIn" to="/collects">
+              我的收藏
+            </router-link>
+            <span v-else class="disabled-link" title="请先登录">我的收藏</span>
           </div>
         </div>
       </div>
@@ -49,9 +66,15 @@
   </footer>
 </template>
 
+<script setup>
+import { useUserStore } from "@/stores/userStore";
+
+const userStore = useUserStore();
+</script>
+
 <style scoped>
 .footer {
-  background: var(--primary);
+  background: var(--primary, #2c3e50);
   color: rgba(255, 255, 255, 0.8);
   padding: 48px 0 24px;
   margin-top: 60px;
@@ -99,11 +122,22 @@
   font-size: 14px;
   color: rgba(255, 255, 255, 0.7);
   margin-bottom: 8px;
-  transition: var(--transition);
+  transition: all 0.3s ease;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .link-group a:hover {
   color: white;
+}
+
+/* 未登录时禁用链接样式 */
+.disabled-link {
+  display: block;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 8px;
+  cursor: not-allowed;
 }
 
 .footer-bottom {
@@ -123,7 +157,7 @@
 .social-icons a {
   color: rgba(255, 255, 255, 0.7);
   font-size: 20px;
-  transition: var(--transition);
+  transition: all 0.3s ease;
 }
 
 .social-icons a:hover {
