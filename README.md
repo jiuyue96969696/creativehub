@@ -84,7 +84,7 @@
 
 ## 🚀 安装运行步骤
 
-### 1. 克隆项目
+1. 克隆项目
 
 ````bash
 git clone https://github.com/jiuyue96969696/creativehub.git
@@ -110,6 +110,7 @@ bash
 npm run preview
 
 📸 项目截图
+项目截图已经全部放在images文件夹下，下面是截图对应的页面内容，为方便查看可以见课程设计报告5.2功能截图部分
 ![欢迎页面](image.png)
 
 ![作品列表页面](image-1.png)
@@ -124,7 +125,7 @@ npm run preview
 
 ![话题详情](image-6.png)
 
-![作品排行榜](image-7.png)
+![作品排行榜+投票结果](image-7.png)
 
 ![用户排行榜](image-8.png)
 
@@ -148,7 +149,7 @@ npm run preview
 
 ![关注管理-我的粉丝](image-18.png)
 
-完整项目截图可以见课程设计报告5.2功能截图部分
+
 
 🌐 在线演示地址
 Creativehub网站的核心功能演示视频已经录制完毕并上传小雅
