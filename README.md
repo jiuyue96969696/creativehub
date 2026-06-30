@@ -85,78 +85,113 @@
 ## 🚀 安装运行步骤
 
 1. 克隆项目
-
-````bash
-git clone https://github.com/jiuyue96969696/creativehub.git
-cd creativehub
+   git clone https://github.com/jiuyue96969696/creativehub.git
+   cd creativehub
 
 2. 安装依赖
-```bash
+
 npm install
 
 3. 启动开发服务器
-```bash
+
 npm run dev
 
 4. 访问应用
-打开浏览器访问：http://localhost:3000
+   打开浏览器访问：http://localhost:3000
 
 5. 构建生产版本
-bash
+
 npm run build
 
 6. 预览生产版本
-bash
+
 npm run preview
 
-📸 项目截图
+## 📸 项目截图
+
 项目截图已经全部放在images文件夹下，下面是截图对应的页面内容，为方便查看可以见课程设计报告5.2功能截图部分
-![欢迎页面](image.png)
 
-![作品列表页面](image-1.png)
+#### 1. 首页 - 欢迎页面
 
-![作品详情页](image-2.png)
+![欢迎页面](images/image.png)
 
-![全屏查看页面](image-3.png)
+#### 2. 首页 - 作品列表
 
-![个人主页](image-4.png)
+![作品列表页面](images/image-1.png)
 
-![话题广场](image-5.png)
+#### 3. 作品详情页
 
-![话题详情](image-6.png)
+![作品详情页](images/image-2.png)
 
-![作品排行榜+投票结果](image-7.png)
+#### 4. 全屏查看
 
-![用户排行榜](image-8.png)
+![全屏查看页面](images/image-3.png)
 
-![搜索页面](image-9.png)
+#### 5. 个人主页
 
-![登录页面](image-10.png)
+![个人主页](images/image-4.png)
 
-![仪表盘页面](image-11.png)
+#### 6. 话题广场
 
-![作品管理页面](image-12.png)
+![话题广场](images/image-5.png)
 
-![上传作品页面](image-13.png)
+#### 7. 话题详情
 
-![草稿箱](image-14.png)
+![话题详情](images/image-6.png)
 
-![个人设置](image-15.png)
+#### 8. 作品排行榜
 
-![我的收藏](image-16.png)
+![作品排行榜](images/image-7.png)
 
-![关注管理-我的关注](image-17.png)
+#### 9. 创作者排行榜
 
-![关注管理-我的粉丝](image-18.png)
+![用户排行榜](images/image-8.png)
 
+#### 10. 搜索页面
 
+![搜索页面](images/image-9.png)
+
+#### 11. 登录页面
+
+![登录页面](images/image-10.png)
+
+#### 12. 仪表盘
+
+![仪表盘页面](images/image-11.png)
+
+#### 13. 作品管理
+
+![作品管理页面](images/image-12.png)
+
+#### 14. 上传作品
+
+![上传作品页面](images/image-13.png)
+
+#### 15. 草稿箱
+
+![草稿箱](images/image-14.png)
+
+#### 16. 个人设置
+
+![个人设置](images/image-15.png)
+
+#### 17. 我的收藏
+
+![我的收藏](images/image-16.png)
+
+#### 18. 关注管理 - 我的关注
+
+![关注管理-我的关注](images/image-17.png)
+
+#### 19. 关注管理 - 我的粉丝
+
+![关注管理-我的粉丝](images/image-18.png)
 
 🌐 在线演示地址
 Creativehub网站的核心功能演示视频已经录制完毕并上传小雅
 
 🧪 测试账号
-用户名	邮箱	密码	角色
-创意设计师	designer@creativehub.com	123456	管理员
-视觉艺术家	artist@creativehub.com	123456	创作者
-插画师小美	xiaomei@creativehub.com	123456	创作者
-````
+用户名 邮箱 密码 角色
+创意设计师 designer@creativehub.com 123456 管理员
+视觉艺术家 artist@creativehub.com 123456 创作者
+插画师小美 xiaomei@creativehub.com 123456 创作者
