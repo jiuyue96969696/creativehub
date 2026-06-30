@@ -139,9 +139,9 @@ npm run preview
 
 ![话题详情](images/image-6.png)
 
-#### 8. 作品排行榜
+#### 8. 作品排行榜+投票结果展示
 
-![作品排行榜](images/image-7.png)
+![作品排行榜+投票结果展示](images/image-7.png)
 
 #### 9. 创作者排行榜
 
