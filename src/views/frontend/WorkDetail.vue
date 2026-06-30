@@ -197,12 +197,10 @@
       @click="closeFullscreen"
     >
       <div class="fullscreen-content" @click.stop>
-        <!-- 关闭按钮 -->
         <button class="fullscreen-close" @click="closeFullscreen">
           <el-icon><Close /></el-icon>
         </button>
 
-        <!-- 图片计数器 -->
         <div
           class="fullscreen-counter"
           v-if="work.images && work.images.length > 1"
@@ -210,15 +208,15 @@
           {{ fullscreenIndex + 1 }} / {{ work.images.length }}
         </div>
 
-        <!-- 主图片 -->
         <div class="fullscreen-image-wrapper">
           <img
             :src="work.images[fullscreenIndex]"
             :alt="`${work.title} - ${fullscreenIndex + 1}`"
+            @click="toggleZoom"
+            :class="{ zoomed: isZoomed }"
           />
         </div>
 
-        <!-- 导航按钮 -->
         <button
           v-if="work.images && work.images.length > 1"
           class="fullscreen-nav fullscreen-prev"
@@ -234,7 +232,6 @@
           <el-icon><ArrowRight /></el-icon>
         </button>
 
-        <!-- 底部缩略图 -->
         <div
           class="fullscreen-thumbnails"
           v-if="work.images && work.images.length > 1"
@@ -250,9 +247,32 @@
           </div>
         </div>
 
-        <!-- 操作提示 -->
+        <div class="fullscreen-actions">
+          <button
+            class="fullscreen-action-btn"
+            @click="toggleZoom"
+            title="缩放"
+          >
+            <el-icon><ZoomIn /></el-icon>
+          </button>
+          <button
+            class="fullscreen-action-btn"
+            @click="rotateImage"
+            title="旋转"
+          >
+            <el-icon><RefreshRight /></el-icon>
+          </button>
+          <button
+            class="fullscreen-action-btn"
+            @click="downloadImage"
+            title="下载"
+          >
+            <el-icon><Download /></el-icon>
+          </button>
+        </div>
+
         <div class="fullscreen-hint-bottom">
-          <span>← → 切换 | ESC 关闭</span>
+          <span>← → 切换 | ESC 关闭 | 点击缩放</span>
         </div>
       </div>
     </div>
@@ -274,7 +294,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { useWorkStore } from "@/stores/workStore";
@@ -303,6 +323,8 @@ const currentSlide = ref(0);
 // 全屏相关
 const fullscreenVisible = ref(false);
 const fullscreenIndex = ref(0);
+const isZoomed = ref(false);
+const rotationAngle = ref(0);
 
 // 从 userStore 实时获取作者信息
 const authorInfo = computed(() => {
@@ -373,6 +395,8 @@ const goToSlide = (index) => {
 const openFullscreen = (index) => {
   fullscreenIndex.value = index;
   fullscreenVisible.value = true;
+  isZoomed.value = false;
+  rotationAngle.value = 0;
   document.body.style.overflow = "hidden";
 };
 
@@ -386,6 +410,8 @@ const prevImage = () => {
     fullscreenIndex.value =
       (fullscreenIndex.value - 1 + work.value.images.length) %
       work.value.images.length;
+    isZoomed.value = false;
+    rotationAngle.value = 0;
   }
 };
 
@@ -393,6 +419,28 @@ const nextImage = () => {
   if (work.value && work.value.images) {
     fullscreenIndex.value =
       (fullscreenIndex.value + 1) % work.value.images.length;
+    isZoomed.value = false;
+    rotationAngle.value = 0;
+  }
+};
+
+const toggleZoom = () => {
+  isZoomed.value = !isZoomed.value;
+};
+
+const rotateImage = () => {
+  rotationAngle.value = (rotationAngle.value + 90) % 360;
+};
+
+const downloadImage = () => {
+  if (work.value && work.value.images) {
+    const link = document.createElement("a");
+    link.href = work.value.images[fullscreenIndex.value];
+    link.download = `${work.value.title}-${fullscreenIndex.value + 1}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    ElMessage.success("开始下载图片");
   }
 };
 
@@ -405,12 +453,14 @@ const handleKeydown = (e) => {
       closeFullscreen();
       break;
     case "ArrowLeft":
-      e.preventDefault();
       prevImage();
       break;
     case "ArrowRight":
-      e.preventDefault();
       nextImage();
+      break;
+    case " ":
+      e.preventDefault();
+      toggleZoom();
       break;
   }
 };
@@ -500,6 +550,16 @@ const checkCollectStatus = () => {
   }
 };
 
+// 滚动到页面顶部
+const scrollToTop = () => {
+  nextTick(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  });
+};
+
 // 加载作品数据
 const loadWorkData = () => {
   const id = Number(route.params.id);
@@ -519,6 +579,9 @@ const loadWorkData = () => {
         workData.authorId,
       );
     }
+
+    // 加载数据后滚动到顶部
+    scrollToTop();
   } else {
     router.push("/");
   }
@@ -589,7 +652,6 @@ onUnmounted(() => {
   min-width: 0;
 }
 
-/* 图片轮播 */
 .image-carousel {
   border-radius: 12px;
   overflow: hidden;
@@ -1003,7 +1065,6 @@ onUnmounted(() => {
   justify-content: center;
 }
 
-/* 关闭按钮 */
 .fullscreen-close {
   position: absolute;
   top: 20px;
@@ -1028,7 +1089,6 @@ onUnmounted(() => {
   transform: rotate(90deg);
 }
 
-/* 图片计数器 */
 .fullscreen-counter {
   position: absolute;
   top: 20px;
@@ -1042,7 +1102,6 @@ onUnmounted(() => {
   z-index: 10;
 }
 
-/* 主图片 */
 .fullscreen-image-wrapper {
   width: 100%;
   height: 100%;
@@ -1056,12 +1115,18 @@ onUnmounted(() => {
   max-width: 90%;
   max-height: 85%;
   object-fit: contain;
+  transition: all 0.3s ease;
+  cursor: zoom-in;
   border-radius: 4px;
-  user-select: none;
-  -webkit-user-drag: none;
 }
 
-/* 导航按钮 */
+.fullscreen-image-wrapper img.zoomed {
+  max-width: 150%;
+  max-height: 150%;
+  cursor: zoom-out;
+  transform: rotate(var(--rotation, 0deg));
+}
+
 .fullscreen-nav {
   position: absolute;
   top: 50%;
@@ -1093,7 +1158,6 @@ onUnmounted(() => {
   right: 20px;
 }
 
-/* 底部缩略图 */
 .fullscreen-thumbnails {
   position: absolute;
   bottom: 30px;
@@ -1136,7 +1200,35 @@ onUnmounted(() => {
   object-fit: cover;
 }
 
-/* 操作提示 */
+.fullscreen-actions {
+  position: absolute;
+  bottom: 100px;
+  right: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+}
+
+.fullscreen-action-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fullscreen-action-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 .fullscreen-hint-bottom {
   position: absolute;
   bottom: 90px;
@@ -1199,6 +1291,11 @@ onUnmounted(() => {
     max-height: 80%;
   }
 
+  .fullscreen-image-wrapper img.zoomed {
+    max-width: 200%;
+    max-height: 200%;
+  }
+
   .fullscreen-nav {
     width: 36px;
     height: 36px;
@@ -1235,6 +1332,17 @@ onUnmounted(() => {
     top: 12px;
     font-size: 12px;
     padding: 4px 12px;
+  }
+
+  .fullscreen-actions {
+    bottom: 80px;
+    right: 16px;
+  }
+
+  .fullscreen-action-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
   }
 
   .fullscreen-hint-bottom {
