@@ -69,14 +69,42 @@
                 :model="registerForm"
                 :rules="registerRules"
                 ref="registerFormRef"
+                :hide-required-asterisk="false"
               >
-                <el-form-item prop="username">
+                <el-form-item prop="username" class="username-form-item">
                   <el-input
                     v-model="registerForm.username"
                     placeholder="用户名（3-20字符）"
                     size="large"
                     prefix-icon="User"
+                    @input="checkUsername"
+                    @blur="handleBlur"
                   />
+                  <!-- 自定义状态提示 - 在表单错误提示下方显示 -->
+                  <div class="username-status-wrapper">
+                    <div
+                      v-if="usernameStatus === 'available'"
+                      class="username-status success"
+                    >
+                      <el-icon><CircleCheck /></el-icon>
+                      <span>该用户名可用</span>
+                    </div>
+                    <!-- 只在未触发表单验证错误时显示错误状态，避免重复 -->
+                    <div
+                      v-else-if="usernameStatus === 'taken' && !showFormError"
+                      class="username-status error"
+                    >
+                      <el-icon><CircleClose /></el-icon>
+                      <span>该用户名已被占用，请换一个</span>
+                    </div>
+                    <div
+                      v-else-if="usernameStatus === 'checking'"
+                      class="username-status checking"
+                    >
+                      <el-icon class="is-loading"><Loading /></el-icon>
+                      <span>检查中...</span>
+                    </div>
+                  </div>
                 </el-form-item>
                 <el-form-item prop="email">
                   <el-input
@@ -153,7 +181,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch, computed } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { useUserStore } from "@/stores/userStore";
@@ -165,6 +193,11 @@ const activeTab = ref("login");
 const loading = ref(false);
 const loginFormRef = ref(null);
 const registerFormRef = ref(null);
+
+// 用户名状态
+const usernameStatus = ref(""); // '' | 'checking' | 'available' | 'taken'
+const usernameCheckTimer = ref(null);
+const showFormError = ref(false);
 
 // 记住我存储的key
 const REMEMBER_KEY = "creativehub_remember";
@@ -182,6 +215,75 @@ const registerForm = reactive({
   confirmPassword: "",
 });
 
+// 检查用户名（实时）
+const checkUsername = () => {
+  const username = registerForm.username;
+  if (!username || username.length < 3) {
+    usernameStatus.value = "";
+    showFormError.value = false;
+    // 触发表单验证
+    if (registerFormRef.value) {
+      registerFormRef.value.validateField("username");
+    }
+    return;
+  }
+
+  // 清除之前的定时器
+  if (usernameCheckTimer.value) {
+    clearTimeout(usernameCheckTimer.value);
+  }
+
+  // 检查格式
+  if (
+    !/^[a-zA-Z\u4e00-\u9fa5][a-zA-Z0-9\u4e00-\u9fa5_]{2,19}$/.test(username)
+  ) {
+    usernameStatus.value = "";
+    showFormError.value = false;
+    if (registerFormRef.value) {
+      registerFormRef.value.validateField("username");
+    }
+    return;
+  }
+
+  // 显示检查中状态
+  usernameStatus.value = "checking";
+  showFormError.value = false;
+
+  // 延迟检查，避免频繁触发
+  usernameCheckTimer.value = setTimeout(() => {
+    const isTaken = userStore.users.some((u) => u.username === username);
+    if (isTaken) {
+      usernameStatus.value = "taken";
+      showFormError.value = true;
+    } else {
+      usernameStatus.value = "available";
+      showFormError.value = false;
+    }
+    // 触发表单验证
+    if (registerFormRef.value) {
+      registerFormRef.value.validateField("username");
+    }
+  }, 300);
+};
+
+// 失去焦点时验证
+const handleBlur = () => {
+  if (registerForm.username && registerForm.username.length >= 3) {
+    checkUsername();
+  }
+};
+
+// 监听用户名输入变化 - 重置状态
+watch(
+  () => registerForm.username,
+  (newVal) => {
+    if (!newVal || newVal.length < 3) {
+      usernameStatus.value = "";
+      showFormError.value = false;
+    }
+  },
+);
+
 const validatePassword = (rule, value, callback) => {
   if (value !== registerForm.password) {
     callback(new Error("两次输入的密码不一致"));
@@ -190,16 +292,43 @@ const validatePassword = (rule, value, callback) => {
   }
 };
 
+// 自定义验证：用户名唯一性
+const validateUsernameUnique = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error("请输入用户名"));
+    return;
+  }
+
+  if (value.length < 3 || value.length > 20) {
+    callback(new Error("用户名长度为3-20字符"));
+    return;
+  }
+
+  if (!/^[a-zA-Z\u4e00-\u9fa5][a-zA-Z0-9\u4e00-\u9fa5_]{2,19}$/.test(value)) {
+    callback(
+      new Error("用户名只能包含字母、数字、中文和下划线，且不能以数字开头"),
+    );
+    return;
+  }
+
+  // 检查用户名是否已存在
+  const isTaken = userStore.users.some((u) => u.username === value);
+  if (isTaken) {
+    callback(new Error("该用户名已被占用，请换一个"));
+  } else {
+    callback();
+  }
+};
+
+// 登录验证规则
 const loginRules = {
   email: [{ required: true, message: "请输入邮箱", trigger: "blur" }],
   password: [{ required: true, message: "请输入密码", trigger: "blur" }],
 };
 
+// 注册验证规则
 const registerRules = {
-  username: [
-    { required: true, message: "请输入用户名", trigger: "blur" },
-    { min: 3, max: 20, message: "用户名长度为3-20字符", trigger: "blur" },
-  ],
+  username: [{ validator: validateUsernameUnique, trigger: "blur" }],
   email: [
     { required: true, message: "请输入邮箱", trigger: "blur" },
     { type: "email", message: "请输入正确的邮箱格式", trigger: "blur" },
@@ -234,7 +363,6 @@ const loadRememberMe = () => {
     const data = localStorage.getItem(REMEMBER_KEY);
     if (data) {
       const parsed = JSON.parse(data);
-      // 检查是否过期（30天）
       const days = (Date.now() - parsed.timestamp) / (1000 * 60 * 60 * 24);
       if (days < 30) {
         loginForm.email = parsed.email;
@@ -251,7 +379,7 @@ const loadRememberMe = () => {
   return false;
 };
 
-// 检查是否有记住的用户，如果有则自动填充
+// 检查是否有记住的用户
 const checkRememberedUser = () => {
   const remembered = loadRememberMe();
   if (remembered) {
@@ -259,6 +387,7 @@ const checkRememberedUser = () => {
   }
 };
 
+// 登录
 const handleLogin = async () => {
   if (!loginFormRef.value) return;
   await loginFormRef.value.validate((valid) => {
@@ -268,9 +397,7 @@ const handleLogin = async () => {
       loading.value = false;
 
       if (result.success) {
-        // 保存记住我信息
         saveRememberMe(loginForm.email, loginForm.password);
-
         ElMessage.success("登录成功！");
         router.push("/dashboard");
       } else {
@@ -280,8 +407,19 @@ const handleLogin = async () => {
   });
 };
 
+// 注册
 const handleRegister = async () => {
   if (!registerFormRef.value) return;
+
+  // 额外检查用户名是否已被占用
+  const isTaken = userStore.users.some(
+    (u) => u.username === registerForm.username,
+  );
+  if (isTaken) {
+    ElMessage.error("该用户名已被占用，请换一个");
+    return;
+  }
+
   await registerFormRef.value.validate((valid) => {
     if (valid) {
       loading.value = true;
@@ -302,6 +440,8 @@ const handleRegister = async () => {
         registerForm.email = "";
         registerForm.password = "";
         registerForm.confirmPassword = "";
+        usernameStatus.value = "";
+        showFormError.value = false;
       } else {
         ElMessage.error(result.message);
       }
@@ -309,15 +449,7 @@ const handleRegister = async () => {
   });
 };
 
-// 监听记住我复选框变化
-const handleRememberChange = (value) => {
-  if (!value) {
-    localStorage.removeItem(REMEMBER_KEY);
-  }
-};
-
 onMounted(() => {
-  // 检查是否有记住的用户
   checkRememberedUser();
 });
 </script>
@@ -415,6 +547,56 @@ onMounted(() => {
 
 .form-footer .el-link {
   font-weight: 600;
+}
+
+/* 用户名表单项 - 移除底部边距避免重复提示 */
+.username-form-item :deep(.el-form-item__error) {
+  display: block;
+  margin-bottom: 0;
+}
+
+/* 用户名状态提示包装器 */
+.username-status-wrapper {
+  min-height: 22px;
+  margin-top: 2px;
+}
+
+/* 用户名状态提示 - 仅一行 */
+.username-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  padding: 2px 0;
+}
+
+.username-status.success {
+  color: #67c23a;
+}
+
+.username-status.error {
+  color: #f56c6c;
+}
+
+.username-status.checking {
+  color: #909399;
+}
+
+.username-status .el-icon {
+  font-size: 16px;
+}
+
+.username-status .el-icon.is-loading {
+  animation: rotating 1s linear infinite;
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 右侧背景 */
