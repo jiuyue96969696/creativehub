@@ -29,7 +29,7 @@
         placeholder="搜索作品标题..."
         prefix-icon="Search"
         clearable
-        style="width: 240px"
+        style="width: 220px"
         @input="handleSearch"
       />
       <el-select
@@ -37,6 +37,7 @@
         placeholder="全部分类"
         clearable
         @change="handleFilter"
+        style="width: 130px"
       >
         <el-option
           v-for="cat in categories"
@@ -50,9 +51,24 @@
         placeholder="全部状态"
         clearable
         @change="handleFilter"
+        style="width: 120px"
       >
         <el-option label="已发布" value="published" />
         <el-option label="草稿" value="draft" />
+      </el-select>
+      <!-- 排序下拉 -->
+      <el-select
+        v-model="sortBy"
+        placeholder="排序方式"
+        @change="handleSort"
+        style="width: 160px"
+      >
+        <el-option label="最新创建" value="createTime-desc" />
+        <el-option label="最早创建" value="createTime-asc" />
+        <el-option label="浏览量最高" value="views-desc" />
+        <el-option label="浏览量最低" value="views-asc" />
+        <el-option label="点赞最多" value="likes-desc" />
+        <el-option label="点赞最少" value="likes-asc" />
       </el-select>
     </div>
 
@@ -85,8 +101,20 @@
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="views" label="浏览" width="90" align="center" />
-      <el-table-column prop="likes" label="点赞" width="90" align="center" />
+      <el-table-column
+        prop="views"
+        label="浏览"
+        width="90"
+        align="center"
+        sortable
+      />
+      <el-table-column
+        prop="likes"
+        label="点赞"
+        width="90"
+        align="center"
+        sortable
+      />
       <el-table-column label="发布时间" width="130" align="center">
         <template #default="{ row }">
           {{ formatDate(row.publishTime || row.createTime) }}
@@ -146,6 +174,7 @@ const loading = ref(false);
 const searchKeyword = ref("");
 const filterCategory = ref("");
 const filterStatus = ref("");
+const sortBy = ref("createTime-desc");
 const currentPage = ref(1);
 const pageSize = ref(10);
 
@@ -155,22 +184,47 @@ const myWorks = computed(() => {
   return workStore.worksByAuthor(userStore.currentUserId);
 });
 
+// 排序函数
+const sortWorks = (works) => {
+  const [field, order] = sortBy.value.split("-");
+  const multiplier = order === "desc" ? -1 : 1;
+
+  return [...works].sort((a, b) => {
+    let valA = a[field] || 0;
+    let valB = b[field] || 0;
+
+    // 如果是字符串类型，使用 localeCompare
+    if (typeof valA === "string" && typeof valB === "string") {
+      return valA.localeCompare(valB) * multiplier;
+    }
+
+    // 数值比较
+    return (valA - valB) * multiplier;
+  });
+};
+
 const filteredWorks = computed(() => {
   let works = [...myWorks.value];
 
+  // 搜索过滤
   if (searchKeyword.value) {
     works = works.filter((w) =>
       w.title.toLowerCase().includes(searchKeyword.value.toLowerCase()),
     );
   }
+
+  // 分类过滤
   if (filterCategory.value) {
     works = works.filter((w) => w.categoryId === filterCategory.value);
   }
+
+  // 状态过滤
   if (filterStatus.value) {
     works = works.filter((w) => w.status === filterStatus.value);
   }
 
-  works.sort((a, b) => b.updateTime - a.updateTime);
+  // 排序
+  works = sortWorks(works);
 
   return works;
 });
@@ -190,6 +244,10 @@ const handleSearch = () => {
 };
 
 const handleFilter = () => {
+  currentPage.value = 1;
+};
+
+const handleSort = () => {
   currentPage.value = 1;
 };
 
@@ -298,11 +356,13 @@ onMounted(() => {
   font-size: 14px;
 }
 
+/* 筛选栏 */
 .filter-bar {
   display: flex;
   gap: 12px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .filter-bar .el-input,
@@ -324,7 +384,7 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-/* ID 列样式 - 专门为13位数字设计 */
+/* ID 列样式 */
 .id-cell {
   display: inline-block;
   padding: 4px 12px;
@@ -362,7 +422,6 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* 编辑按钮 - 蓝色 */
 .edit-btn {
   color: #409eff !important;
 }
@@ -373,7 +432,6 @@ onMounted(() => {
   text-decoration: underline;
 }
 
-/* 发布按钮 - 绿色 */
 .publish-btn {
   color: #67c23a !important;
 }
@@ -384,7 +442,6 @@ onMounted(() => {
   text-decoration: underline;
 }
 
-/* 删除按钮 - 红色 */
 .delete-btn {
   color: #f56c6c !important;
 }
@@ -426,6 +483,11 @@ onMounted(() => {
   background-color: #ecf0f1;
 }
 
+/* 排序下拉特殊样式 */
+.filter-bar .el-select:last-child {
+  margin-left: auto;
+}
+
 /* 响应式 */
 @media (max-width: 1024px) {
   .el-table {
@@ -437,8 +499,7 @@ onMounted(() => {
     padding: 3px 8px;
   }
 
-  /* 小屏幕下ID列宽度调整 */
-  .el-table .id-cell {
+  .id-cell {
     font-size: 12px;
     padding: 2px 8px;
     min-width: 40px;
@@ -467,6 +528,10 @@ onMounted(() => {
   .filter-bar .el-input,
   .filter-bar .el-select {
     width: 100% !important;
+  }
+
+  .filter-bar .el-select:last-child {
+    margin-left: 0;
   }
 
   .el-table .cell {
