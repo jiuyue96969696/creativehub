@@ -81,48 +81,33 @@ export const useWorkStore = defineStore("work", {
   }),
 
   getters: {
-    // 已发布的作品
     publishedWorks: (state) =>
       state.works.filter((w) => w.status === "published"),
-
-    // 草稿作品
     draftWorks: (state) => state.works.filter((w) => w.status === "draft"),
-
-    // 按分类筛选
     worksByCategory: (state) => (categoryId) => {
       return state.works.filter(
         (w) => w.categoryId === categoryId && w.status === "published",
       );
     },
-
-    // 按作者筛选
     worksByAuthor: (state) => (authorId) => {
       return state.works.filter((w) => w.authorId === authorId);
     },
-
-    // 按标签筛选
     worksByTag: (state) => (tagName) => {
       return state.works.filter(
         (w) => w.tags.includes(tagName) && w.status === "published",
       );
     },
-
-    // 热门作品
     hotWorks: (state) => {
       return [...state.works]
         .filter((w) => w.status === "published")
         .sort((a, b) => b.views - a.views)
         .slice(0, 10);
     },
-
-    // 最新作品
     latestWorks: (state) => {
       return [...state.works]
         .filter((w) => w.status === "published")
         .sort((a, b) => b.publishTime - a.publishTime);
     },
-
-    // 获取所有标签及其作品数量 - 按数量降序排列（热门优先）
     allTags: (state) => {
       const tagMap = {};
       state.works
@@ -137,26 +122,18 @@ export const useWorkStore = defineStore("work", {
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
     },
-
-    // 获取作品总数
     totalWorks: (state) =>
       state.works.filter((w) => w.status === "published").length,
-
-    // 获取总获赞数
     totalLikes: (state) => {
       return state.works
         .filter((w) => w.status === "published")
         .reduce((sum, w) => sum + (w.likes || 0), 0);
     },
-
-    // 获取总浏览量
     totalViews: (state) => {
       return state.works
         .filter((w) => w.status === "published")
         .reduce((sum, w) => sum + (w.views || 0), 0);
     },
-
-    // 获取分类统计
     categoryStats: (state) => {
       const stats = {};
       state.works
@@ -172,7 +149,6 @@ export const useWorkStore = defineStore("work", {
   },
 
   actions: {
-    // 初始化示例数据
     initSampleWorks() {
       if (this.works.length === 0) {
         const sampleWorks = [
@@ -185,11 +161,11 @@ export const useWorkStore = defineStore("work", {
             categoryName: "UI设计",
             tags: ["UI设计", "App设计", "深色模式"],
             images: [
-              "https://picsum.photos/seed/app1/800/600",
+              "/images/zuopin4.png",
               "https://picsum.photos/seed/app2/800/600",
               "https://picsum.photos/seed/app3/800/600",
             ],
-            coverImage: "https://picsum.photos/seed/app1/400/300",
+            coverImage: "/images/zuopin4.png",
             toolsUsed: ["Figma", "Adobe XD"],
             authorId: 1,
             authorName: "创意设计师",
@@ -263,10 +239,10 @@ export const useWorkStore = defineStore("work", {
             categoryName: "UI设计",
             tags: ["UI设计", "设计系统", "极简"],
             images: [
-              "https://picsum.photos/seed/ui1/800/600",
+              "/images/zuopin2.jpg",
               "https://picsum.photos/seed/ui2/800/600",
             ],
-            coverImage: "https://picsum.photos/seed/ui1/400/300",
+            coverImage: "/images/zuopin2.jpg",
             toolsUsed: ["Figma", "Sketch"],
             authorId: 1,
             authorName: "创意设计师",
@@ -314,11 +290,11 @@ export const useWorkStore = defineStore("work", {
             categoryName: "3D设计",
             tags: ["3D设计", "角色设计", "机械"],
             images: [
-              "https://picsum.photos/seed/robot1/800/600",
+              "/images/zuopin1.jpg",
               "https://picsum.photos/seed/robot2/800/600",
               "https://picsum.photos/seed/robot3/800/600",
             ],
-            coverImage: "https://picsum.photos/seed/robot1/400/300",
+            coverImage: "/images/zuopin1.jpg",
             toolsUsed: ["Blender", "Substance Painter"],
             authorId: 3,
             authorName: "插画师小美",
@@ -340,13 +316,13 @@ export const useWorkStore = defineStore("work", {
             categoryName: "平面设计",
             tags: ["品牌设计", "包装设计", "咖啡"],
             images: [
-              "https://picsum.photos/seed/brand1/800/600",
+              "/images/zuopin3.jpg",
               "https://picsum.photos/seed/brand2/800/600",
             ],
-            coverImage: "https://picsum.photos/seed/brand1/400/300",
+            coverImage: "/images/zuopin3.jpg",
             toolsUsed: ["Illustrator", "Photoshop"],
-            authorId: 4,
-            authorName: "设计达人",
+            authorId: 2,
+            authorName: "视觉艺术家",
             views: 1678,
             likes: 189,
             collects: 56,
@@ -370,8 +346,8 @@ export const useWorkStore = defineStore("work", {
             ],
             coverImage: "https://picsum.photos/seed/japan1/400/300",
             toolsUsed: ["Premiere Pro", "After Effects"],
-            authorId: 5,
-            authorName: "创意无限",
+            authorId: 2,
+            authorName: "视觉艺术家",
             views: 3456,
             likes: 456,
             collects: 134,
@@ -390,13 +366,13 @@ export const useWorkStore = defineStore("work", {
             categoryName: "插画",
             tags: ["数字插画", "未来城市", "科幻"],
             images: [
-              "https://picsum.photos/seed/future1/800/600",
+              "/images/zuopin6.jpg",
               "https://picsum.photos/seed/future2/800/600",
             ],
-            coverImage: "https://picsum.photos/seed/future1/400/300",
+            coverImage: "/images/zuopin6.jpg",
             toolsUsed: ["Procreate", "Photoshop"],
-            authorId: 6,
-            authorName: "艺术人生",
+            authorId: 3,
+            authorName: "插画师小美",
             views: 1234,
             likes: 156,
             collects: 45,
@@ -421,8 +397,8 @@ export const useWorkStore = defineStore("work", {
             ],
             coverImage: "https://picsum.photos/seed/green1/400/300",
             toolsUsed: ["Illustrator", "Photoshop"],
-            authorId: 8,
-            authorName: "品牌设计师",
+            authorId: 3,
+            authorName: "插画师小美",
             views: 2345,
             likes: 289,
             collects: 78,
@@ -441,13 +417,13 @@ export const useWorkStore = defineStore("work", {
             categoryName: "3D设计",
             tags: ["3D建模", "科幻", "Blender"],
             images: [
-              "https://picsum.photos/seed/vehicle1/800/600",
+              "/images/zuopin7.jpg",
               "https://picsum.photos/seed/vehicle2/800/600",
             ],
-            coverImage: "https://picsum.photos/seed/vehicle1/400/300",
+            coverImage: "/images/zuopin7.jpg",
             toolsUsed: ["Blender", "Substance Painter"],
-            authorId: 7,
-            authorName: "数字艺术家",
+            authorId: 2,
+            authorName: "视觉艺术家",
             views: 1789,
             likes: 234,
             collects: 67,
@@ -466,14 +442,14 @@ export const useWorkStore = defineStore("work", {
             categoryName: "UI设计",
             tags: ["UI设计", "健康App", "用户体验"],
             images: [
-              "https://picsum.photos/seed/health1/800/600",
+              "/images/zuopin5.png",
               "https://picsum.photos/seed/health2/800/600",
               "https://picsum.photos/seed/health3/800/600",
             ],
-            coverImage: "https://picsum.photos/seed/health1/400/300",
+            coverImage: "/images/zuopin5.png",
             toolsUsed: ["Figma", "Adobe XD"],
-            authorId: 4,
-            authorName: "设计达人",
+            authorId: 3,
+            authorName: "插画师小美",
             views: 2987,
             likes: 345,
             collects: 123,
@@ -483,6 +459,27 @@ export const useWorkStore = defineStore("work", {
             updateTime: Date.now() - 86400000 * 13,
             publishTime: Date.now() - 86400000 * 13,
           },
+          {
+            id: 999,
+            title: "未完成的插画作品",
+            description: "这是一幅正在创作中的插画，还在构思阶段...",
+            categoryId: 3,
+            categoryName: "插画",
+            tags: ["插画", "工作进展"],
+            images: ["https://picsum.photos/seed/draft1/800/600"],
+            coverImage: "https://picsum.photos/seed/draft1/400/300",
+            toolsUsed: ["Procreate"],
+            authorId: 3,
+            authorName: "插画师小美",
+            views: 0,
+            likes: 0,
+            collects: 0,
+            comments: 0,
+            status: "draft",
+            createTime: Date.now() - 86400000 * 1,
+            updateTime: Date.now() - 86400000 * 1,
+            publishTime: null,
+          },
         ];
         this.works = sampleWorks;
         this.saveWorks();
@@ -491,7 +488,6 @@ export const useWorkStore = defineStore("work", {
       }
     },
 
-    // 更新分类作品数量
     updateCategoryCounts() {
       this.categories.forEach((cat) => {
         cat.count = this.works.filter(
@@ -500,7 +496,6 @@ export const useWorkStore = defineStore("work", {
       });
     },
 
-    // 获取所有作品 - 同步更新作者头像
     fetchWorks() {
       this.loadWorks();
       this.updateAllTags();
@@ -509,7 +504,6 @@ export const useWorkStore = defineStore("work", {
       return this.works;
     },
 
-    // 同步所有作品的作者头像
     syncAuthorAvatars() {
       try {
         const userStore = useUserStore();
@@ -521,7 +515,6 @@ export const useWorkStore = defineStore("work", {
       }
     },
 
-    // 通知用户数据更新
     notifyUserDataUpdate() {
       if (typeof window !== "undefined") {
         setTimeout(() => {
@@ -534,7 +527,6 @@ export const useWorkStore = defineStore("work", {
       }
     },
 
-    // 获取作品详情
     getWorkById(id) {
       this.loadWorks();
       const work = this.works.find((w) => w.id === id);
@@ -547,7 +539,6 @@ export const useWorkStore = defineStore("work", {
       return work;
     },
 
-    // 创建作品
     createWork(workData) {
       this.loadWorks();
       const newWork = {
@@ -571,7 +562,6 @@ export const useWorkStore = defineStore("work", {
       return newWork;
     },
 
-    // 更新作品
     updateWork(id, updates) {
       this.loadWorks();
       const index = this.works.findIndex((w) => w.id === id);
@@ -598,7 +588,6 @@ export const useWorkStore = defineStore("work", {
       return null;
     },
 
-    // 删除作品
     deleteWork(id) {
       this.loadWorks();
       const index = this.works.findIndex((w) => w.id === id);
@@ -615,7 +604,6 @@ export const useWorkStore = defineStore("work", {
       return false;
     },
 
-    // 更新作品互动数据
     updateWorkInteraction(workId, field, change) {
       this.loadWorks();
       const work = this.works.find((w) => w.id === workId);
@@ -630,7 +618,6 @@ export const useWorkStore = defineStore("work", {
       return 0;
     },
 
-    // 更新作者作品数
     updateAuthorWorksCount(authorId) {
       const count = this.works.filter(
         (w) => w.authorId === authorId && w.status === "published",
@@ -655,7 +642,6 @@ export const useWorkStore = defineStore("work", {
         });
     },
 
-    // 更新作者统计数据
     updateAuthorStats(authorId) {
       const userWorks = this.works.filter(
         (w) => w.authorId === authorId && w.status === "published",
@@ -686,7 +672,6 @@ export const useWorkStore = defineStore("work", {
         });
     },
 
-    // 更新所有标签
     updateAllTags() {
       const tagSet = new Set();
       this.works.forEach((w) => {
@@ -695,17 +680,14 @@ export const useWorkStore = defineStore("work", {
       this.tags = Array.from(tagSet);
     },
 
-    // 保存数据
     saveWorks() {
       try {
         localStorage.setItem("works", JSON.stringify(this.works));
-        console.log("✅ 作品数据已保存到 localStorage");
       } catch (e) {
         console.error("保存作品数据失败:", e);
       }
     },
 
-    // 加载数据
     loadWorks() {
       try {
         const data = localStorage.getItem("works");
@@ -718,9 +700,7 @@ export const useWorkStore = defineStore("work", {
             if (!work.views) work.views = 0;
             if (!work.likes) work.likes = 0;
           });
-          console.log(`✅ 已从 localStorage 加载 ${this.works.length} 个作品`);
         } else {
-          console.log("📝 localStorage 无作品数据，初始化示例数据");
           this.initSampleWorks();
         }
         this.updateCategoryCounts();
@@ -730,7 +710,6 @@ export const useWorkStore = defineStore("work", {
       }
     },
 
-    // 重置作品数据
     resetWorks() {
       this.works = [];
       localStorage.removeItem("works");
